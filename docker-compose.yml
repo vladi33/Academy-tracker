@@ -1,0 +1,29 @@
+services:
+  postgres-db:
+    image: postgres:16-alpine
+    container_name: academy_postgres
+    environment:
+      POSTGRES_USER: academy_user
+      POSTGRES_PASSWORD: academy_password
+      POSTGRES_DB: academy_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: academy_backend
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/academy_db
+      - SPRING_DATASOURCE_USERNAME=academy_user
+      - SPRING_DATASOURCE_PASSWORD=academy_password
+    depends_on:
+      - postgres-db
+
+volumes:
+  postgres_data:
