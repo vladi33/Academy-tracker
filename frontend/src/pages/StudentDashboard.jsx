@@ -29,7 +29,6 @@ function StudentDashboard() {
 
   const decoded = getDecodedToken();
   const currentStudent = decoded?.sub || decoded?.username || '';
-  const currentStudentId = decoded?.id || null;
 
   useEffect(() => {
     const fetchData = async () => {
@@ -51,27 +50,16 @@ function StudentDashboard() {
     setError('');
     setMessage('');
 
-    const existingSub = submissions.find(s =>
-      s?.assignment?.id === selectedAssignment.id &&
-      s?.student?.username === currentStudent
-    );
-
     const submissionPayload = {
       assignment: { id: selectedAssignment.id },
-      student: currentStudentId ? { id: currentStudentId } : { username: currentStudent },
       githubUrl,
       deployedUrl,
       description
     };
 
     try {
-      if (existingSub?.id) {
-        await API.put(`/submissions/${existingSub.id}`, submissionPayload);
-        setMessage('Project updated successfully!');
-      } else {
-        await API.post('/submissions', submissionPayload);
-        setMessage('Project submitted successfully!');
-      }
+      await API.post('/submissions', submissionPayload);
+      setMessage('Project submitted successfully!');
 
       setGithubUrl('');
       setDeployedUrl('');
@@ -84,14 +72,16 @@ function StudentDashboard() {
     }
   };
 
-  return (
-    <div className="p-6 max-w-6xl mx-auto space-y-6">
-      <h1 className="text-3xl font-bold text-gray-800">Student Dashboard</h1>
-      <p className="text-gray-600">Review your active assignments, submit your projects, and check grades or feedback.</p>
+return (
+    <div className="p-6 max-w-6xl w-full mx-auto space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold text-gray-800">Student Dashboard</h1>
+        <p className="text-gray-600">Review your active assignments, submit your projects, and check grades or feedback.</p>
+      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="flex flex-col md:flex-row gap-6 items-start w-full">
 
-        <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
+        <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100 w-full md:w-1/2 shrink-0">
           <h2 className="text-xl font-semibold mb-4 text-blue-600">Active Assignments & Feedback</h2>
 
           <div className="space-y-4">
@@ -109,18 +99,18 @@ function StudentDashboard() {
                     selectedAssignment?.id === asm.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
                   }`}
                 >
-                  <div className="flex justify-between items-start">
-                    <h3 className="font-bold text-gray-700">{asm.title}</h3>
-                    <span className="text-red-500 font-medium text-sm">
+                  <div className="flex justify-between items-start gap-2">
+                    <h3 className="font-bold text-gray-700 truncate">{asm.title}</h3>
+                    <span className="text-red-500 font-medium text-sm shrink-0 whitespace-nowrap">
                       Due Date: {asm.deadline ? new Date(asm.deadline).toLocaleDateString() : 'No deadline'}
                     </span>
                   </div>
-                  <p className="text-sm text-gray-600 mt-1">{asm.description}</p>
+                  <p className="text-sm text-gray-600 mt-1 break-words">{asm.description}</p>
 
                   {sub?.grade ? (
                     <div className="mt-3 p-2 bg-green-50 border border-green-200 rounded text-sm">
                       <span className="font-bold text-green-700">Grade: {sub.grade}</span>
-                      {sub.feedback && <p className="text-gray-600 italic mt-1"> {sub.feedback} </p>}
+                      {sub.feedback && <p className="text-gray-600 italic mt-1 break-words"> {sub.feedback} </p>}
                     </div>
                   ) : sub ? (
                     <span className="inline-block mt-3 text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded font-medium">
@@ -137,11 +127,11 @@ function StudentDashboard() {
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
+        <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100 w-full md:w-1/2 shrink-0">
           <h2 className="text-xl font-semibold mb-2 text-blue-600">Submit Your Project</h2>
 
           {selectedAssignment ? (
-            <p className="text-sm text-gray-500 mb-4">
+            <p className="text-sm text-gray-500 mb-4 truncate">
               Submitting for: <span className="font-bold text-gray-700">{selectedAssignment.title}</span>
             </p>
           ) : (

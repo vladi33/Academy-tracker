@@ -1,12 +1,14 @@
 package com.academy.tracker.controller;
 
 import com.academy.tracker.entity.Submission;
+import com.academy.tracker.entity.User;
 import com.academy.tracker.repository.SubmissionRepository;
+import com.academy.tracker.repository.UserRepository;
 import com.academy.tracker.security.JwtUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/submissions")
@@ -16,8 +18,10 @@ public class SubmissionController {
     private SubmissionRepository submissionRepository;
 
     @Autowired
-    private JwtUtils jwtUtils;
+    private UserRepository userRepository;
 
+    @Autowired
+    private JwtUtils jwtUtils;
 
     @GetMapping
     public ResponseEntity<?> getAllSubmissions(@RequestHeader("Authorization") String token) {
@@ -30,13 +34,28 @@ public class SubmissionController {
         return ResponseEntity.ok(submissionRepository.findAll());
     }
 
-
     @PostMapping
-    public ResponseEntity<Submission> submitProject(@RequestBody Submission submission) {
-        submission.setStatus("PENDING");
-        return ResponseEntity.ok(submissionRepository.save(submission));
-    }
+    public ResponseEntity<?> submitProject(@RequestHeader("Authorization") String token, @RequestBody Submission submission) {
+        try {
+            // 1. Взимаме името на студента от криптирания токен
+            String jwt = token.substring(7);
+            String username = jwtUtils.getUserNameFromJwtToken(jwt);
 
+            // 2. Намираме пълния потребител (заедно с ID-то му) от базата
+            Optional<User> studentOpt = userRepository.findByUsername(username);
+            if (studentOpt.isEmpty()) {
+                return ResponseEntity.badRequest().body("Error: Student not found in database!");
+            }
+
+            // 3. Свързваме го с предавания проект
+            submission.setStudent(studentOpt.get());
+            submission.setStatus("PENDING");
+
+            return ResponseEntity.ok(submissionRepository.save(submission));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error processing submission: " + e.getMessage());
+        }
+    }
 
     @PutMapping("/{id}/evaluate")
     public ResponseEntity<?> evaluateSubmission(@RequestHeader("Authorization") String token, @PathVariable Long id, @RequestBody Submission evaluationData) {
@@ -56,14 +75,3 @@ public class SubmissionController {
         }).orElse(ResponseEntity.notFound().build());
     }
 }
-
-
-
-
-
-
-
-
-
-
-
