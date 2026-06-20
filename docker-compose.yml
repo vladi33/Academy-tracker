@@ -1,29 +1,53 @@
 services:
-  postgres-db:
-    image: postgres:16-alpine
-    container_name: academy_postgres
+
+  db:
+    image: postgres:15-alpine
+    container_name: academy_db
     environment:
-      POSTGRES_USER: academy_user
-      POSTGRES_PASSWORD: academy_password
-      POSTGRES_DB: academy_db
+      POSTGRES_DB: academy_tracker
+      POSTGRES_USER: vladi
+      POSTGRES_PASSWORD: password123
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - academy-network
+
 
   backend:
     build:
-      context: .
+      context: ./backend
       dockerfile: Dockerfile
     container_name: academy_backend
     ports:
       - "8080:8080"
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/academy_db
-      - SPRING_DATASOURCE_USERNAME=academy_user
-      - SPRING_DATASOURCE_PASSWORD=academy_password
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/academy_tracker
+      - SPRING_DATASOURCE_USERNAME=vladi
+      - SPRING_DATASOURCE_PASSWORD=password123
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
     depends_on:
-      - postgres-db
+      - db
+    networks:
+      - academy-network
+
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: academy_frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - academy-network
 
 volumes:
-  postgres_data:
+  pgdata:
+
+networks:
+  academy-network:
+    driver: bridge
