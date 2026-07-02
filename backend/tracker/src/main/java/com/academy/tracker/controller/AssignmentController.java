@@ -18,15 +18,17 @@ public class AssignmentController {
     @Autowired
     private JwtUtils jwtUtils;
 
-
     @GetMapping
     public ResponseEntity<List<Assignment>> getAllAssignments() {
         return ResponseEntity.ok(assignmentRepository.findAll());
     }
 
-
     @PostMapping
     public ResponseEntity<?> createAssignment(@RequestHeader("Authorization") String token, @RequestBody Assignment assignment) {
+        if (token == null || !token.startsWith("Bearer ")) {
+            return ResponseEntity.status(401).body("Error: Missing or invalid token!");
+        }
+
         String jwt = token.substring(7);
         String role = jwtUtils.getRoleFromJwtToken(jwt);
 

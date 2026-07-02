@@ -24,41 +24,40 @@ public class SubmissionController {
     private JwtUtils jwtUtils;
 
     @GetMapping
-    public ResponseEntity<?> getAllSubmissions(@RequestHeader("Authorization") String token) {
-        String jwt = token.substring(7);
-        String role = jwtUtils.getRoleFromJwtToken(jwt);
-
-        if (!"INSTRUCTOR".equals(role)) {
-            return ResponseEntity.status(403).body("Error: Only teachers have access to the list!");
-        }
+    public ResponseEntity<?> getAllSubmissions() {
         return ResponseEntity.ok(submissionRepository.findAll());
     }
 
     @PostMapping
     public ResponseEntity<?> submitProject(@RequestHeader("Authorization") String token, @RequestBody Submission submission) {
         try {
-            // 1. Взимаме името на студента от криптирания токен
+            if (token == null || !token.startsWith("Bearer ")) {
+                return ResponseEntity.status(401).body("Error: Missing token!");
+            }
+
             String jwt = token.substring(7);
             String username = jwtUtils.getUserNameFromJwtToken(jwt);
 
-            // 2. Намираме пълния потребител (заедно с ID-то му) от базата
             Optional<User> studentOpt = userRepository.findByUsername(username);
             if (studentOpt.isEmpty()) {
-                return ResponseEntity.badRequest().body("Error: Student not found in database!");
+                return ResponseEntity.badRequest().body("Error: Student not found!");
             }
 
-            // 3. Свързваме го с предавания проект
             submission.setStudent(studentOpt.get());
             submission.setStatus("PENDING");
 
             return ResponseEntity.ok(submissionRepository.save(submission));
         } catch (Exception e) {
-            return ResponseEntity.status(500).body("Error processing submission: " + e.getMessage());
+            return ResponseEntity.status(500).body("Error: " + e.getMessage());
         }
     }
 
     @PutMapping("/{id}/evaluate")
     public ResponseEntity<?> evaluateSubmission(@RequestHeader("Authorization") String token, @PathVariable Long id, @RequestBody Submission evaluationData) {
+        if (token == null || !token.startsWith("Bearer ")) {
+            return ResponseEntity.status(401).body("Error: Missing token!");
+        }
+
         String jwt = token.substring(7);
         String role = jwtUtils.getRoleFromJwtToken(jwt);
 

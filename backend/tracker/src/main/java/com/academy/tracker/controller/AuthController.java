@@ -30,6 +30,14 @@ public class AuthController {
         }
 
         user.setPassword(encoder.encode(user.getPassword()));
+
+        if("Secret_Code".equals(user.getRole())) {
+            user.setRole("INSTRUCTOR");
+
+        }else {
+            user.setRole("STUDENT");
+        }
+
         userRepository.save(user);
         return ResponseEntity.ok("The user has been registered successfully!");
     }
