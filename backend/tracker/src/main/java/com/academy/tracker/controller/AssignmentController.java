@@ -1,41 +1,45 @@
 package com.academy.tracker.controller;
 
+import com.academy.tracker.dto.AssignmentResponse;
+import com.academy.tracker.dto.CreateAssignmentRequest;
 import com.academy.tracker.entity.Assignment;
 import com.academy.tracker.repository.AssignmentRepository;
-import com.academy.tracker.security.JwtUtils;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/assignments")
 public class AssignmentController {
 
-    @Autowired
-    private AssignmentRepository assignmentRepository;
+    private final AssignmentRepository assignmentRepository;
 
-    @Autowired
-    private JwtUtils jwtUtils;
+    public AssignmentController(AssignmentRepository assignmentRepository) {
+        this.assignmentRepository = assignmentRepository;
+    }
 
     @GetMapping
-    public ResponseEntity<List<Assignment>> getAllAssignments() {
-        return ResponseEntity.ok(assignmentRepository.findAll());
+    public List<AssignmentResponse> getAllAssignments() {
+        return assignmentRepository.findAllByOrderByDeadlineAsc().stream()
+                .map(AssignmentResponse::from)
+                .toList();
     }
 
     @PostMapping
-    public ResponseEntity<?> createAssignment(@RequestHeader("Authorization") String token, @RequestBody Assignment assignment) {
-        if (token == null || !token.startsWith("Bearer ")) {
-            return ResponseEntity.status(401).body("Error: Missing or invalid token!");
-        }
+    @PreAuthorize("hasRole('INSTRUCTOR')")
+    public ResponseEntity<AssignmentResponse> createAssignment(
+            @Valid @RequestBody CreateAssignmentRequest request
+    ) {
+        Assignment assignment = new Assignment();
+        assignment.setTitle(request.title().trim());
+        assignment.setDescription(request.description().trim());
+        assignment.setDeadline(request.deadline());
 
-        String jwt = token.substring(7);
-        String role = jwtUtils.getRoleFromJwtToken(jwt);
-
-        if (!"INSTRUCTOR".equals(role)) {
-            return ResponseEntity.status(403).body("Error: You do not have Teacher rights!");
-        }
-
-        return ResponseEntity.ok(assignmentRepository.save(assignment));
+        Assignment saved = assignmentRepository.save(assignment);
+        return ResponseEntity.status(HttpStatus.CREATED).body(AssignmentResponse.from(saved));
     }
 }
